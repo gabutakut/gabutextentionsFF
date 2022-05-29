@@ -1,0 +1,45 @@
+{
+  "name": "Gabut Extentions",
+  "description": "Integration for Gabut Download Manager.",
+  "short_name": "GabutDM",
+  "homepage_url": "https://github.com/gabutakut/gabutextentionsFF",
+  "version": "1.8.5",
+  "manifest_version": 2,
+  "icons": {
+    "32": "icons/icon_32.png",
+    "48": "icons/icon_48.png",
+    "128": "icons/icon_128.png"
+  },
+  "background": {
+  "scripts": ["background.js"],
+  "persistent": true
+  },
+  "commands": {
+    "intrupt-toggle": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+Q"
+        },
+        "description": "Intrupt Sortcut"
+      },
+    "custom-toggle": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+V"
+        },
+        "description": "Custom Sortcut"
+      }
+  },
+  "browser_action": {
+    "default_icon": "icons/icon_32.png",
+    "default_popup": "popup/popup.html"
+  },
+  "permissions": [
+    "contextMenus",
+    "downloads",
+    "cookies",
+    "storage",
+    "history",
+    "browsingData",
+    "tabs",
+    "<all_urls>"
+  ]
+}
