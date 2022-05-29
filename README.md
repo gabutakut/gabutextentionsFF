@@ -1,4 +1,4 @@
-# Gabut Extensions
+# Gabut Extensions FireFox
 <h1 align="center">
     <br>
     <img src="icons/icon_128.svg" alt="Gabut Extensions">
