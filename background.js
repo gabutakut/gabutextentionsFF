@@ -88,7 +88,7 @@ function baseName (str) {
     return base;
 }
 
-async function chromeStorageGetter (key) {
+async function StorageGetter (key) {
     return new Promise (resolve => {
         browser.storage.local.get (key, (obj)=> {
             return resolve(obj[key] || '');
@@ -97,9 +97,9 @@ async function chromeStorageGetter (key) {
 }
 
 async function load_conf () {
-    interruptDownloads = await chromeStorageGetter ('interrupt-download');
-    CustomPort = await chromeStorageGetter ('port-custom');
-    PortSet = await chromeStorageGetter ('port-input');
+    interruptDownloads = await StorageGetter ('interrupt-download');
+    CustomPort = await StorageGetter ('port-custom');
+    PortSet = await StorageGetter ('port-input');
     icon_load ();
 }
 
