@@ -1,4 +1,5 @@
 # Gabut Extensions For Firefox
+
 <h1 align="center">
     <br>
     <img src="icons/icon_128.svg" alt="Gabut Extensions">
