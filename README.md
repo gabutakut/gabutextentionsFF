@@ -12,8 +12,7 @@
             src="https://addons.mozilla.org/static-frontend/c6276b7c0dc392e3ce8668f12e68b83c.svg" alt="Get it from the Add-ons"></a>
 </p>
 
-Extensions Browser for Firefox
-Integration for Gabut Download manager.
+<h1 align="center">🤩 Integration for Gabut Download manager 🤩</h1>
 
 <p align="center">
     <img src="Screenshot0.png" alt="Home">
