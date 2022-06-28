@@ -21,29 +21,26 @@
 
 let result = true;
 let interruptDownloads = true;
-let PortSet = "2021";
+let defaultPort = "2021";
+let PortSet = "";
 let CustomPort = false;
 let HostDownloader = "http://127.0.0.1:";
 
 load_conf ();
-
 alwawscheck ();
 function alwawscheck () {
-    setTimeout(function () {
-        icon_load ();
-        var xmlrequest = new XMLHttpRequest ();
-        xmlrequest.open ("GET", get_host (), true);
-        xmlrequest.setRequestHeader ("Content-type", "application/x-www-form-urlencoded");
-        xmlrequest.send ("");
-        xmlrequest.onreadystatechange = function () {
-            if (xmlrequest.statusText == "OK") {
-                result = false;
-            } else {
-                result = true;
-            }
+    var xmlrequest = new XMLHttpRequest ();
+    xmlrequest.open ("GET", get_host (), true);
+    xmlrequest.setRequestHeader ("Content-type", "application/x-www-form-urlencoded");
+    xmlrequest.send ("");
+    xmlrequest.onreadystatechange = function () {
+        if (xmlrequest.statusText == "OK") {
+            result = false;
+        } else {
+            result = true;
         }
-        alwawscheck ();
-    }, 2000);
+        icon_load ();
+    }
 }
 
 function icon_load () {
@@ -55,6 +52,7 @@ function icon_load () {
 }
 
 browser.downloads.onCreated.addListener (function (downloadItem) {
+    alwawscheck ();
     if (!interruptDownloads || result) {
         return;
     }
@@ -97,6 +95,7 @@ async function StorageGetter (key) {
 }
 
 async function load_conf () {
+    alwawscheck ();
     interruptDownloads = await StorageGetter ('interrupt-download');
     CustomPort = await StorageGetter ('port-custom');
     PortSet = await StorageGetter ('port-input');
@@ -138,10 +137,13 @@ browser.commands.onCommand.addListener(function (command) {
 browser.runtime.onMessage.addListener((message, callback) => {
     if (message.extensionId == "interuptopen") {
         browser.runtime.sendMessage({ message: interruptDownloads, extensionId: "popintrup" });
+        alwawscheck ();
     } else if (message.extensionId == "customopen") {
         browser.runtime.sendMessage({ message: CustomPort, extensionId: "popcust" });
+        alwawscheck ();
     } else if (message.extensionId == "portopen") {
         browser.runtime.sendMessage({ message: PortSet, extensionId: "popport" });
+        alwawscheck ();
     } else if (message.extensionId == "interuptchecked") {
         setInterruptDownload (message.message);
         load_conf ();
@@ -155,5 +157,9 @@ browser.runtime.onMessage.addListener((message, callback) => {
 });
 
 function get_host () {
-    return HostDownloader + PortSet;
+    if (CustomPort) {
+        return HostDownloader + PortSet;
+    } else {
+        return HostDownloader + defaultPort;
+    }
 }
