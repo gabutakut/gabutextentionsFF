@@ -3,7 +3,7 @@
   "description": "Integration for Gabut Download Manager.",
   "short_name": "GabutDM",
   "homepage_url": "https://github.com/gabutakut/gabutextentionsFF",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "manifest_version": 2,
   "icons": {
     "32": "icons/icon_32.png",

@@ -19,35 +19,26 @@
 * Authored by: torikulhabib <torik.habib@Gmail.com>
 */
 
-let result = true;
+let ResponGdm = true;
 let interruptDownloads = true;
-let PortSet = "2021";
+let PortSet = "";
 let CustomPort = false;
-let HostDownloader = "http://127.0.0.1:";
 
 load_conf ();
-
-alwawscheck ();
-function alwawscheck () {
-    setTimeout(function () {
-        icon_load ();
-        var xmlrequest = new XMLHttpRequest ();
-        xmlrequest.open ("GET", get_host (), true);
-        xmlrequest.setRequestHeader ("Content-type", "application/x-www-form-urlencoded");
-        xmlrequest.send ("");
-        xmlrequest.onreadystatechange = function () {
-            if (xmlrequest.statusText == "OK") {
-                result = false;
-            } else {
-                result = true;
-            }
-        }
-        alwawscheck ();
-    }, 2000);
+browser.tabs.onUpdated.addListener(respondby);
+browser.tabs.onHighlighted.addListener(respondby);
+function respondby () {
+    fetch (get_host (), {requiredStatus: 'ok'})
+    .then (function() {
+        ResponGdm = false;
+    }).catch(function () {
+        ResponGdm = true;
+    });
+    icon_load ();
 }
 
 function icon_load () {
-    if (interruptDownloads && !result) {
+    if (interruptDownloads && !ResponGdm) {
         browser.browserAction.setIcon({path: "./icons/icon_32.png"});
     } else {
         browser.browserAction.setIcon({path: "./icons/icon_disabled_32.png"});
@@ -55,17 +46,17 @@ function icon_load () {
 }
 
 browser.downloads.onCreated.addListener (function (downloadItem) {
-    if (!interruptDownloads || result) {
+    if (!interruptDownloads || ResponGdm) {
         return;
     }
     setTimeout (()=> {
         browser.downloads.cancel (downloadItem.id);
-        browser.downloads.erase({ id: downloadItem.id });
+        browser.downloads.erase ({ id: downloadItem.id });
     });
     SendToOniDM (downloadItem);
 });
 
-function SendToOniDM (downloadItem) {
+async function SendToOniDM (downloadItem) {
     var content = "link:${finalUrl},filename:${filename},referrer:${referrer},mimetype:${mime},filesize:${filesize},resumable:${canResume},";
     var urlfinal = content.replace ("${finalUrl}", (downloadItem['finalUrl']||downloadItem['url']));
     var filename = urlfinal.replace ("${filename}", baseName(downloadItem['filename']));
@@ -73,11 +64,7 @@ function SendToOniDM (downloadItem) {
     var mime = referrer.replace ("${mime}", downloadItem['mime']);
     var filseize = mime.replace ("${filesize}", downloadItem['fileSize']);
     var resume = filseize.replace ("${canResume}", downloadItem['canResume']);
-    console.log (resume);
-    var xmlrequest = new XMLHttpRequest ();
-    xmlrequest.open ("POST", get_host (), true);
-    xmlrequest.setRequestHeader ("Content-type", "application/x-www-form-urlencoded");
-    xmlrequest.send (resume);
+    fetch (get_host (), { method: 'post', body: resume }).then (function (r) { return r.text (); }).catch (function () {});
 }
 
 function baseName (str) {
@@ -155,5 +142,9 @@ browser.runtime.onMessage.addListener((message, callback) => {
 });
 
 function get_host () {
-    return HostDownloader + PortSet;
+    if (CustomPort) {
+        return "http://127.0.0.1:" + PortSet;
+    } else {
+        return "http://127.0.0.1:2021";
+    }
 }
