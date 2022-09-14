@@ -19,32 +19,26 @@
 * Authored by: torikulhabib <torik.habib@Gmail.com>
 */
 
-let result = true;
+let ResponGdm = true;
 let interruptDownloads = true;
-let defaultPort = "2021";
 let PortSet = "";
 let CustomPort = false;
-let HostDownloader = "http://127.0.0.1:";
 
 load_conf ();
-alwawscheck ();
-function alwawscheck () {
-    var xmlrequest = new XMLHttpRequest ();
-    xmlrequest.open ("GET", get_host (), true);
-    xmlrequest.setRequestHeader ("Content-type", "application/x-www-form-urlencoded");
-    xmlrequest.send ("");
-    xmlrequest.onreadystatechange = function () {
-        if (xmlrequest.statusText == "OK") {
-            result = false;
-        } else {
-            result = true;
-        }
-        icon_load ();
-    }
+browser.tabs.onUpdated.addListener(respondby);
+browser.tabs.onHighlighted.addListener(respondby);
+function respondby () {
+    fetch (get_host (), {requiredStatus: 'ok'})
+    .then (function() {
+        ResponGdm = false;
+    }).catch(function () {
+        ResponGdm = true;
+    });
+    icon_load ();
 }
 
 function icon_load () {
-    if (interruptDownloads && !result) {
+    if (interruptDownloads && !ResponGdm) {
         browser.browserAction.setIcon({path: "./icons/icon_32.png"});
     } else {
         browser.browserAction.setIcon({path: "./icons/icon_disabled_32.png"});
@@ -52,18 +46,17 @@ function icon_load () {
 }
 
 browser.downloads.onCreated.addListener (function (downloadItem) {
-    alwawscheck ();
-    if (!interruptDownloads || result) {
+    if (!interruptDownloads || ResponGdm) {
         return;
     }
     setTimeout (()=> {
         browser.downloads.cancel (downloadItem.id);
-        browser.downloads.erase({ id: downloadItem.id });
+        browser.downloads.erase ({ id: downloadItem.id });
     });
     SendToOniDM (downloadItem);
 });
 
-function SendToOniDM (downloadItem) {
+async function SendToOniDM (downloadItem) {
     var content = "link:${finalUrl},filename:${filename},referrer:${referrer},mimetype:${mime},filesize:${filesize},resumable:${canResume},";
     var urlfinal = content.replace ("${finalUrl}", (downloadItem['finalUrl']||downloadItem['url']));
     var filename = urlfinal.replace ("${filename}", baseName(downloadItem['filename']));
@@ -71,11 +64,7 @@ function SendToOniDM (downloadItem) {
     var mime = referrer.replace ("${mime}", downloadItem['mime']);
     var filseize = mime.replace ("${filesize}", downloadItem['fileSize']);
     var resume = filseize.replace ("${canResume}", downloadItem['canResume']);
-    console.log (resume);
-    var xmlrequest = new XMLHttpRequest ();
-    xmlrequest.open ("POST", get_host (), true);
-    xmlrequest.setRequestHeader ("Content-type", "application/x-www-form-urlencoded");
-    xmlrequest.send (resume);
+    fetch (get_host (), { method: 'post', body: resume }).then (function (r) { return r.text (); }).catch (function () {});
 }
 
 function baseName (str) {
@@ -95,7 +84,6 @@ async function StorageGetter (key) {
 }
 
 async function load_conf () {
-    alwawscheck ();
     interruptDownloads = await StorageGetter ('interrupt-download');
     CustomPort = await StorageGetter ('port-custom');
     PortSet = await StorageGetter ('port-input');
@@ -137,13 +125,10 @@ browser.commands.onCommand.addListener(function (command) {
 browser.runtime.onMessage.addListener((message, callback) => {
     if (message.extensionId == "interuptopen") {
         browser.runtime.sendMessage({ message: interruptDownloads, extensionId: "popintrup" });
-        alwawscheck ();
     } else if (message.extensionId == "customopen") {
         browser.runtime.sendMessage({ message: CustomPort, extensionId: "popcust" });
-        alwawscheck ();
     } else if (message.extensionId == "portopen") {
         browser.runtime.sendMessage({ message: PortSet, extensionId: "popport" });
-        alwawscheck ();
     } else if (message.extensionId == "interuptchecked") {
         setInterruptDownload (message.message);
         load_conf ();
@@ -158,8 +143,8 @@ browser.runtime.onMessage.addListener((message, callback) => {
 
 function get_host () {
     if (CustomPort) {
-        return HostDownloader + PortSet;
+        return "http://127.0.0.1:" + PortSet;
     } else {
-        return HostDownloader + defaultPort;
+        return "http://127.0.0.1:2021";
     }
 }
