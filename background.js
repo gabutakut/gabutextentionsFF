@@ -25,9 +25,7 @@ let PortSet = "";
 let CustomPort = false;
 
 load_conf ();
-browser.tabs.onUpdated.addListener(respondby);
-browser.tabs.onHighlighted.addListener(respondby);
-function respondby () {
+browser.tabs.onHighlighted.addListener(function () {
     fetch (get_host (), {requiredStatus: 'ok'})
     .then (function() {
         ResponGdm = false;
@@ -35,8 +33,7 @@ function respondby () {
         ResponGdm = true;
     });
     icon_load ();
-}
-
+});
 function icon_load () {
     if (interruptDownloads && !ResponGdm) {
         browser.browserAction.setIcon({path: "./icons/icon_32.png"});
@@ -44,6 +41,24 @@ function icon_load () {
         browser.browserAction.setIcon({path: "./icons/icon_disabled_32.png"});
     }
 }
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
+    chrome.webRequest.onResponseStarted.addListener (function GetRespond (content) {
+        if (content.tabId === -1) {
+            return;
+        }
+        const length = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-LENGTH').map (lcont => lcont.value).shift ();
+        if (length > 1) {
+            let gdmtype = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-TYPE')[0].value;
+            if (gdmtype.startsWith ('video')) {
+                chrome.tabs.sendMessage(content.tabId, {message: 'gdmvideo', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
+            } else if (gdmtype.startsWith ('audio')) {
+                chrome.tabs.sendMessage(content.tabId, {message: 'gdmaudio', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
+            }
+        }
+    }, {urls: ['<all_urls>']}, ['responseHeaders']);
+    chrome.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+});
 
 browser.downloads.onCreated.addListener (function (downloadItem) {
     if (!interruptDownloads || ResponGdm) {
@@ -57,16 +72,30 @@ browser.downloads.onCreated.addListener (function (downloadItem) {
 });
 
 async function SendToOniDM (downloadItem) {
-    var content = "link:${finalUrl},filename:${filename},referrer:${referrer},mimetype:${mime},filesize:${filesize},resumable:${canResume},";
-    var urlfinal = content.replace ("${finalUrl}", (downloadItem['finalUrl']||downloadItem['url']));
-    var filename = urlfinal.replace ("${filename}", baseName(downloadItem['filename']));
-    var referrer = filename.replace ("${referrer}", downloadItem['referrer']);
-    var mime = referrer.replace ("${mime}", downloadItem['mime']);
-    var filseize = mime.replace ("${filesize}", downloadItem['fileSize']);
-    var resume = filseize.replace ("${canResume}", downloadItem['canResume']);
-    fetch (get_host (), { method: 'post', body: resume }).then (function (r) { return r.text (); }).catch (function () {});
+    fetch (get_host (), { method: 'post', body: get_downloader (downloadItem) }).then (function (r) { return r.text (); }).catch (function () {});
 }
 
+function get_downloader (downloadItem) {
+    let gdmurl = 'link:';
+    gdmurl += downloadItem['finalUrl'];
+    gdmurl += ',';
+    gdmurl += 'filename:';
+    gdmurl += downloadItem['filename'];
+    gdmurl += ',';
+    gdmurl += 'referrer:';
+    gdmurl += downloadItem['referrer'];
+    gdmurl += ',';
+    gdmurl += 'mimetype:';
+    gdmurl += downloadItem['mime'];
+    gdmurl += ',';
+    gdmurl += 'filesize:';
+    gdmurl += downloadItem['fileSize'];
+    gdmurl += ',';
+    gdmurl += 'resumable:';
+    gdmurl += downloadItem['canResume'];
+    gdmurl += ',';
+    return gdmurl;
+}
 function baseName (str) {
     var base = new String(str).substring(str.lastIndexOf('/') + 1); 
     if (base.lastIndexOf(".") != -1) {
@@ -113,31 +142,36 @@ async function SavetoStorage(key, value) {
 browser.commands.onCommand.addListener(function (command) {
     if (command == "intrupt-toggle") {
         setInterruptDownload (!interruptDownloads);
-        browser.runtime.sendMessage({ extensionId: command, message: !interruptDownloads});
+        browser.runtime.sendMessage({ extensionId: command, message: !interruptDownloads}).catch(function() {});
         load_conf ();
     } else if (command == "custom-toggle") {
         setPortCustom (!CustomPort);
-        browser.runtime.sendMessage({ extensionId: command, message:  !CustomPort});
+        browser.runtime.sendMessage({ extensionId: command, message:  !CustomPort}).catch(function() {});
         load_conf ();
     }
 });
 
-browser.runtime.onMessage.addListener((message, callback) => {
-    if (message.extensionId == "interuptopen") {
-        browser.runtime.sendMessage({ message: interruptDownloads, extensionId: "popintrup" });
-    } else if (message.extensionId == "customopen") {
-        browser.runtime.sendMessage({ message: CustomPort, extensionId: "popcust" });
-    } else if (message.extensionId == "portopen") {
-        browser.runtime.sendMessage({ message: PortSet, extensionId: "popport" });
-    } else if (message.extensionId == "interuptchecked") {
-        setInterruptDownload (message.message);
+browser.runtime.onMessage.addListener((request, callback) => {
+    if (request.extensionId == "interuptopen") {
+        browser.runtime.sendMessage({ message: interruptDownloads, extensionId: "popintrup" }).catch(function() {});
+    } else if (request.extensionId == "customopen") {
+        browser.runtime.sendMessage({ message: CustomPort, extensionId: "popcust" }).catch(function() {});
+    } else if (request.extensionId == "portopen") {
+        browser.runtime.sendMessage({ message: PortSet, extensionId: "popport" }).catch(function() {});
+    } else if (request.extensionId == "interuptchecked") {
+        setInterruptDownload (request.message);
         load_conf ();
-    } else if (message.extensionId == "customchecked") {
-        setPortCustom (message.message);
+    } else if (request.extensionId == "customchecked") {
+        setPortCustom (request.message);
         load_conf ();
-    } else if (message.extensionId == "portval") {
-        setPortInput (message.message);
+    } else if (request.extensionId == "portval") {
+        setPortInput (request.message);
         load_conf ();
+    } else if (request.extensionId == "gdmurl") {
+        if (!interruptDownloads || ResponGdm) {
+            return;
+        }
+        fetch (get_host (), { method: 'post', body: request.message }).then (function (r) { return r.text (); }).catch (function () {});
     }
 });
 

@@ -23,24 +23,24 @@ let PortInput = $('#port-input');
 let DownloadIntrupt = $('#interrupt-download');
 let PortCustom = $('#port-custom');
 
-browser.runtime.sendMessage({ extensionId: "interuptopen" });
-browser.runtime.sendMessage({ extensionId: "customopen" });
-browser.runtime.sendMessage({ extensionId: "portopen" });
+browser.runtime.sendMessage({ extensionId: "interuptopen" }).catch(function() {});
+browser.runtime.sendMessage({ extensionId: "customopen" }).catch(function() {});
+browser.runtime.sendMessage({ extensionId: "portopen" }).catch(function() {});
 DownloadIntrupt.on("change", dwinterupt);
 PortCustom.on("change", customchecked);
 PortInput.on("change paste keyup", portinput);
 
 function dwinterupt () {
-     browser.runtime.sendMessage({  message: DownloadIntrupt.prop ('checked'), extensionId: "interuptchecked" });
+     browser.runtime.sendMessage({  message: DownloadIntrupt.prop ('checked'), extensionId: "interuptchecked" }).catch(function() {});
 }
 
 function customchecked () {
-     browser.runtime.sendMessage({ message: PortCustom.prop ('checked'), extensionId: "customchecked" });
+     browser.runtime.sendMessage({ message: PortCustom.prop ('checked'), extensionId: "customchecked" }).catch(function() {});
      hide_popin ();
 }
 
 function portinput () {
-     browser.runtime.sendMessage({ message: PortInput.val (), extensionId: "portval" });
+     browser.runtime.sendMessage({ message: PortInput.val (), extensionId: "portval" }).catch(function() {});
 }
 
 browser.runtime.onMessage.addListener((message, callback) => {
