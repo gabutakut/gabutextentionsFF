@@ -25,15 +25,16 @@ let PortSet = "";
 let CustomPort = false;
 
 load_conf ();
-browser.tabs.onHighlighted.addListener(function () {
-    fetch (get_host (), {requiredStatus: 'ok'})
-    .then (function() {
+browser.tabs.onHighlighted.addListener(gdmactive);
+function gdmactive () {
+    fetch (get_host (), {requiredStatus: 'ok'}).then (function () {
         ResponGdm = false;
     }).catch(function () {
         ResponGdm = true;
     });
     icon_load ();
-});
+}
+
 function icon_load () {
     if (interruptDownloads && !ResponGdm) {
         browser.browserAction.setIcon({path: "./icons/icon_32.png"});
@@ -42,23 +43,31 @@ function icon_load () {
     }
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
-    chrome.webRequest.onResponseStarted.addListener (function GetRespond (content) {
-        if (content.tabId === -1) {
-            return;
-        }
-        const length = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-LENGTH').map (lcont => lcont.value).shift ();
-        if (length > 1) {
-            let gdmtype = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-TYPE')[0].value;
-            if (gdmtype.startsWith ('video')) {
-                chrome.tabs.sendMessage(content.tabId, {message: 'gdmvideo', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
-            } else if (gdmtype.startsWith ('audio')) {
-                chrome.tabs.sendMessage(content.tabId, {message: 'gdmaudio', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
-            }
-        }
-    }, {urls: ['<all_urls>']}, ['responseHeaders']);
-    chrome.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
+    if (tab.url.includes ('youtube')) {
+        browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+    }
+    if (changeInfo.status == 'loading') {
+        browser.webRequest.onResponseStarted.removeListener (WebContent);
+        browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+    }
+    browser.webRequest.onResponseStarted.addListener (WebContent, {urls: ['<all_urls>']}, ['responseHeaders']);
 });
+
+function WebContent (content) {
+    if (content.tabId === -1) {
+        return;
+    }
+    const length = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-LENGTH').map (lcont => lcont.value).shift ();
+    if (length > 1) {
+        let gdmtype = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-TYPE')[0].value;
+        if (gdmtype.startsWith ('video')) {
+            browser.tabs.sendMessage(content.tabId, {message: 'gdmvideo', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
+        } else if (gdmtype.startsWith ('audio')) {
+            browser.tabs.sendMessage(content.tabId, {message: 'gdmaudio', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
+        }
+    }
+}
 
 browser.downloads.onCreated.addListener (function (downloadItem) {
     if (!interruptDownloads || ResponGdm) {
@@ -77,7 +86,7 @@ async function SendToOniDM (downloadItem) {
 
 function get_downloader (downloadItem) {
     let gdmurl = 'link:';
-    gdmurl += downloadItem['finalUrl'];
+    gdmurl += (downloadItem['finalUrl']||downloadItem['url']);
     gdmurl += ',';
     gdmurl += 'filename:';
     gdmurl += downloadItem['filename'];
@@ -160,6 +169,7 @@ browser.runtime.onMessage.addListener((request, callback) => {
         browser.runtime.sendMessage({ message: PortSet, extensionId: "popport" }).catch(function() {});
     } else if (request.extensionId == "interuptchecked") {
         setInterruptDownload (request.message);
+        gdmactive ();
         load_conf ();
     } else if (request.extensionId == "customchecked") {
         setPortCustom (request.message);

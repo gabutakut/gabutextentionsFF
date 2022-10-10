@@ -30,10 +30,6 @@ div.append (input);
 div.append (label);
 div.append (vbutton);
 div.append (abutton);
-let container = document.querySelectorAll('.html5-video-container');
-for (let n = 0; n < container; n++) {
-  container[n].append (div);
-}
 document.body.append (div);
 function removeCharacters(input) {
   let forbiddenC = ['/', '?', '&','=','.','"', '|']
@@ -44,25 +40,23 @@ function removeCharacters(input) {
 }
 function videoLink () {
   if (videourl != '') {
-    chrome.runtime.sendMessage({ message: videourl, extensionId: 'gdmurl'}).catch(function() {});
+    browser.runtime.sendMessage({ message: videourl, extensionId: 'gdmurl'}).catch(function() {});
   }
 }
 function audioLink () {
   if (audiourl != '') {
-    chrome.runtime.sendMessage({ message: audiourl, extensionId: 'gdmurl'}).catch(function() {});
+    browser.runtime.sendMessage({ message: audiourl, extensionId: 'gdmurl'}).catch(function() {});
   }
 }
-chrome.runtime.onMessage.addListener (function(request, sender, sendResponse) {
+browser.runtime.onMessage.addListener (function(request, sender, sendResponse) {
   if (request.message == 'gdmvideo') {
     videourl = get_downloader (request);
     vbutton.style.backgroundImage = vdbgred ('white');
     vbutton.setAttribute('title', request.mimetype);
-    sendResponse({status: 'ok'});
   } else if (request.message == 'gdmaudio') {
     audiourl = get_downloader (request);
     abutton.style.backgroundImage = adbgred ('white');
     abutton.setAttribute('title', request.mimetype);
-    sendResponse({status: document.title});
   } else if (request.message == 'gdmclean') {
     videourl = '';
     audiourl = '';
@@ -70,6 +64,7 @@ chrome.runtime.onMessage.addListener (function(request, sender, sendResponse) {
     abutton.style.backgroundImage = adbgred ('red');
   }
 });
+
 function get_downloader (request) {
   let gdmurl = 'link:';
   gdmurl += request.urls.replace (/&range=\d+-\d+/, '');
