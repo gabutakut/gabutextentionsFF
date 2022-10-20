@@ -3,7 +3,7 @@
   "description": "Integration for Gabut Download Manager.",
   "short_name": "GabutDM",
   "homepage_url": "https://github.com/gabutakut/gabutextentionsFF",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "manifest_version": 2,
   "icons": {
     "32": "icons/icon_32.png",
@@ -14,14 +14,6 @@
   "scripts": ["background.js"],
   "persistent": true
   },
-  "content_scripts": [
-    {
-      "matches": [ "http://*/*", "https://*/*", "ftp://*/*", "file:///*" ],
-      "all_frames": false,
-      "js": ["content-script.js"],
-      "css": ["content-script.css"]
-    }
-  ],
   "commands": {
     "intrupt-toggle": {
         "suggested_key": {
@@ -29,11 +21,11 @@
         },
         "description": "Intrupt Sortcut"
       },
-    "custom-toggle": {
+    "avideo-toggle": {
         "suggested_key": {
           "default": "Ctrl+Shift+V"
         },
-        "description": "Custom Sortcut"
+        "description": "Audio video Sortcut"
       }
   },
   "browser_action": {
@@ -46,6 +38,7 @@
     "tabs",
     "webRequest",
     "activeTab",
+    "scripting",
     "<all_urls>"
   ]
 }
