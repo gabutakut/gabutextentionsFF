@@ -21,17 +21,24 @@
 
 let PortInput = $('#port-input');
 let DownloadIntrupt = $('#interrupt-download');
+let DownloadVideo = $('#video-download');
 let PortCustom = $('#port-custom');
 
 browser.runtime.sendMessage({ extensionId: "interuptopen" }).catch(function() {});
 browser.runtime.sendMessage({ extensionId: "customopen" }).catch(function() {});
 browser.runtime.sendMessage({ extensionId: "portopen" }).catch(function() {});
+browser.runtime.sendMessage({ extensionId: "videoopen" }).catch(function() {});
 DownloadIntrupt.on("change", dwinterupt);
+DownloadVideo.on("change", videocase);
 PortCustom.on("change", customchecked);
 PortInput.on("change paste keyup", portinput);
 
 function dwinterupt () {
      browser.runtime.sendMessage({  message: DownloadIntrupt.prop ('checked'), extensionId: "interuptchecked" }).catch(function() {});
+}
+
+function videocase () {
+     browser.runtime.sendMessage({  message: DownloadVideo.prop ('checked'), extensionId: "videochecked" }).catch(function() {});
 }
 
 function customchecked () {
@@ -42,20 +49,21 @@ function customchecked () {
 function portinput () {
      browser.runtime.sendMessage({ message: PortInput.val (), extensionId: "portval" }).catch(function() {});
 }
-
-browser.runtime.onMessage.addListener((message, callback) => {
-     if (message.extensionId == "intrupt-toggle") {
-          DownloadIntrupt.prop('checked', message.message);
-     } else if (message.extensionId == "custom-toggle") {
-          PortCustom.prop('checked', message.message);
+hide_popin ();
+browser.runtime.onMessage.addListener((request, callback) => {
+     if (request.extensionId == "intrupt-toggle") {
+          DownloadIntrupt.prop('checked', request.message);
+     } else if (request.extensionId == "avideo-toggle") {
+          DownloadVideo.prop('checked', request.message);
+     } else if (request.extensionId == "popvideo") {
+          DownloadVideo.prop('checked', request.message);
+     } else if (request.extensionId == "popintrup") {
+          DownloadIntrupt.prop('checked', request.message);
+     } else if (request.extensionId == "popcust") {
+          PortCustom.prop('checked', request.message);
           hide_popin ();
-     } else if (message.extensionId == "popintrup") {
-          DownloadIntrupt.prop('checked', message.message);
-     } else if (message.extensionId == "popcust") {
-          PortCustom.prop('checked', message.message);
-          hide_popin ();
-     } else if (message.extensionId == "popport") {
-          PortInput.val(message.message);
+     } else if (request.extensionId == "popport") {
+          PortInput.val(request.message);
      }
 });
 

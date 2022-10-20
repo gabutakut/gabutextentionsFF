@@ -20,9 +20,10 @@
 */
 
 let ResponGdm = true;
-let interruptDownloads = true;
+let InterruptDownloads = true;
 let PortSet = "";
 let CustomPort = false;
+var DownloadVideo = false;
 
 load_conf ();
 browser.tabs.onHighlighted.addListener(gdmactive);
@@ -36,22 +37,55 @@ function gdmactive () {
 }
 
 function icon_load () {
-    if (interruptDownloads && !ResponGdm) {
+    if (InterruptDownloads && !ResponGdm) {
         browser.browserAction.setIcon({path: "./icons/icon_32.png"});
     } else {
         browser.browserAction.setIcon({path: "./icons/icon_disabled_32.png"});
     }
 }
 
+async function RunScript (tabId, callback) {
+    let existid = false;
+    let scripts = await browser.scripting.getRegisteredContentScripts();
+    for (let scrid of scripts.map((script) => script.id)) {
+        if (`${tabId}` === scrid) {
+            existid = true;
+        }
+    }
+    callback (existid);
+}
+
+async function StopScript (tabId) {
+    await browser.scripting.unregisterContentScripts({ids: [`${tabId}`],}).catch(function() {});
+}
+
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
-    if (tab.url.includes ('youtube')) {
-        browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+    if (DownloadVideo) {
+        if (tab.url.includes ('youtube')) {
+            RunScript (tabId, function (existid) {
+                if (!existid) {
+                    browser.scripting.registerContentScripts([{id: `${tabId}`, allFrames: false, matches: ['<all_urls>'], js: ['content-script.js'], css: ['content-script.css']}]);
+                }
+            });
+            browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+        }
+        if (changeInfo.status == 'loading') {
+            RunScript (tabId, function (existid) {
+                if (!existid) {
+                    browser.scripting.registerContentScripts([{id: `${tabId}`, allFrames: false, matches: ['<all_urls>'], js: ['content-script.js'], css: ['content-script.css']}]);
+                }
+            });
+            browser.webRequest.onResponseStarted.removeListener (WebContent);
+            browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+        }
+        browser.webRequest.onResponseStarted.addListener (WebContent, {urls: ['<all_urls>']}, ['responseHeaders']);
+    } else {
+        RunScript (tabId, function (existid) {
+            if (existid) {
+                StopScript (tabId);
+            }
+        });
     }
-    if (changeInfo.status == 'loading') {
-        browser.webRequest.onResponseStarted.removeListener (WebContent);
-        browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
-    }
-    browser.webRequest.onResponseStarted.addListener (WebContent, {urls: ['<all_urls>']}, ['responseHeaders']);
 });
 
 function WebContent (content) {
@@ -70,7 +104,7 @@ function WebContent (content) {
 }
 
 browser.downloads.onCreated.addListener (function (downloadItem) {
-    if (!interruptDownloads || ResponGdm) {
+    if (!InterruptDownloads || ResponGdm) {
         return;
     }
     setTimeout (()=> {
@@ -122,14 +156,19 @@ async function StorageGetter (key) {
 }
 
 async function load_conf () {
-    interruptDownloads = await StorageGetter ('interrupt-download');
+    InterruptDownloads = await StorageGetter ('interrupt-download');
     CustomPort = await StorageGetter ('port-custom');
+    DownloadVideo = await StorageGetter ('video-download');
     PortSet = await StorageGetter ('port-input');
     icon_load ();
 }
 
 async function setPortCustom (interrupt) {
     await SavetoStorage('port-custom', interrupt);
+}
+
+async function setVideoMenu (download) {
+    await SavetoStorage('video-download', download);
 }
 
 async function setPortInput (interrupt) {
@@ -150,23 +189,28 @@ async function SavetoStorage(key, value) {
 
 browser.commands.onCommand.addListener(function (command) {
     if (command == "intrupt-toggle") {
-        setInterruptDownload (!interruptDownloads);
-        browser.runtime.sendMessage({ extensionId: command, message: !interruptDownloads}).catch(function() {});
+        setInterruptDownload (!InterruptDownloads);
+        browser.runtime.sendMessage({ extensionId: command, message: !InterruptDownloads}).catch(function() {});
         load_conf ();
-    } else if (command == "custom-toggle") {
-        setPortCustom (!CustomPort);
-        browser.runtime.sendMessage({ extensionId: command, message:  !CustomPort}).catch(function() {});
+    } else if (command == "avideo-toggle") {
+        setVideoMenu (!DownloadVideo);
+        browser.runtime.sendMessage({ extensionId: command, message:  !DownloadVideo}).catch(function() {});
         load_conf ();
     }
 });
 
 browser.runtime.onMessage.addListener((request, callback) => {
     if (request.extensionId == "interuptopen") {
-        browser.runtime.sendMessage({ message: interruptDownloads, extensionId: "popintrup" }).catch(function() {});
+        browser.runtime.sendMessage({ message: InterruptDownloads, extensionId: "popintrup" }).catch(function() {});
     } else if (request.extensionId == "customopen") {
         browser.runtime.sendMessage({ message: CustomPort, extensionId: "popcust" }).catch(function() {});
     } else if (request.extensionId == "portopen") {
         browser.runtime.sendMessage({ message: PortSet, extensionId: "popport" }).catch(function() {});
+    } else if (request.extensionId == "videoopen") {
+        browser.runtime.sendMessage({ message: DownloadVideo, extensionId: "popvideo" }).catch(function() {});
+    } else if (request.extensionId == "videochecked") {
+        setVideoMenu (request.message);
+        load_conf ();
     } else if (request.extensionId == "interuptchecked") {
         setInterruptDownload (request.message);
         gdmactive ();
@@ -178,7 +222,7 @@ browser.runtime.onMessage.addListener((request, callback) => {
         setPortInput (request.message);
         load_conf ();
     } else if (request.extensionId == "gdmurl") {
-        if (!interruptDownloads || ResponGdm) {
+        if (!InterruptDownloads || ResponGdm) {
             return;
         }
         fetch (get_host (), { method: 'post', body: request.message }).then (function (r) { return r.text (); }).catch (function () {});
