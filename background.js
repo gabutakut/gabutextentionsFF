@@ -92,7 +92,7 @@ function WebContent (content) {
     if (content.tabId === -1) {
         return;
     }
-    const length = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-LENGTH').map (lcont => lcont.value).shift ();
+    let length = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-LENGTH').map (lcont => lcont.value).shift ();
     if (length > 1) {
         let gdmtype = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-TYPE')[0].value;
         if (gdmtype.startsWith ('video')) {
