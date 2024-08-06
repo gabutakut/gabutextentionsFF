@@ -100,6 +100,9 @@ browser.downloads.onCreated.addListener (function (downloadItem) {
     if (!InterruptDownloads || ResponGdm) {
         return;
     }
+    if (downloadItem['url'].includes ("blob:")) {
+        return;
+    }
     queueMicrotask (()=> {
         browser.downloads.cancel (downloadItem.id);
         browser.downloads.erase ({ id: downloadItem.id });
@@ -113,7 +116,7 @@ async function SendToOniDM (downloadItem) {
   
 function get_downloader (downloadItem) {
     let gdmurl = 'link:';
-    gdmurl += (downloadItem['finalUrl']||downloadItem['url']);
+    gdmurl += downloadItem['url'];
     gdmurl += ',';
     gdmurl += 'filename:';
     gdmurl += baseName (downloadItem['filename']);
@@ -193,7 +196,7 @@ browser.commands.onCommand.addListener(function (command) {
     }
 });
 
-browser.runtime.onMessage.addListener((request, callback) => {
+browser.runtime.onMessage.addListener((request, sender, callback) => {
     if (request.extensionId == "interuptopen") {
         browser.runtime.sendMessage({ message: InterruptDownloads, extensionId: "popintrup" }).catch(function() {});
     } else if (request.extensionId == "customopen") {
@@ -207,7 +210,6 @@ browser.runtime.onMessage.addListener((request, callback) => {
         load_conf ();
     } else if (request.extensionId == "interuptchecked") {
         setInterruptDownload (request.message);
-        gdmactive ();
         load_conf ();
     } else if (request.extensionId == "customchecked") {
         setPortCustom (request.message);
