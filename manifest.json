@@ -3,13 +3,19 @@
   "description": "Integration for Gabut Download Manager.",
   "short_name": "GabutDM",
   "homepage_url": "https://github.com/gabutakut/gabutextentionsFF",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "manifest_version": 3,
   "icons": {
     "32": "icons/icon_32.png",
     "48": "icons/icon_48.png",
     "128": "icons/icon_128.svg"
   },
+"browser_specific_settings": {
+  "gecko": {
+    "id": "{90e44ca0-9b2f-4fa2-88b7-5fcaa5474f49}",
+    "strict_min_version": "127.0"
+  }
+},
   "background": {
     "scripts": ["background.js"]
   },
@@ -22,7 +28,7 @@
       },
     "avideo-toggle": {
         "suggested_key": {
-          "default": "Ctrl+Shift+V"
+          "default": "Ctrl+Shift+L"
         },
         "description": "Audio video Sortcut"
       }

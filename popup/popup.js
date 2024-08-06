@@ -28,15 +28,15 @@ browser.runtime.sendMessage({ extensionId: "interuptopen" }).catch(function() {}
 browser.runtime.sendMessage({ extensionId: "customopen" }).catch(function() {});
 browser.runtime.sendMessage({ extensionId: "portopen" }).catch(function() {});
 browser.runtime.sendMessage({ extensionId: "videoopen" }).catch(function() {});
+
 DownloadIntrupt.on("change", dwinterupt);
-DownloadVideo.on("change", videocase);
 PortCustom.on("change", customchecked);
+DownloadVideo.on("change", videocase);
 PortInput.on("change paste keyup", portinput);
 
 function dwinterupt () {
      browser.runtime.sendMessage({  message: DownloadIntrupt.prop ('checked'), extensionId: "interuptchecked" }).catch(function() {});
 }
-
 function videocase () {
      browser.runtime.sendMessage({  message: DownloadVideo.prop ('checked'), extensionId: "videochecked" }).catch(function() {});
 }
@@ -49,7 +49,7 @@ function customchecked () {
 function portinput () {
      browser.runtime.sendMessage({ message: PortInput.val (), extensionId: "portval" }).catch(function() {});
 }
-hide_popin ();
+
 browser.runtime.onMessage.addListener((request, callback) => {
      if (request.extensionId == "intrupt-toggle") {
           DownloadIntrupt.prop('checked', request.message);
@@ -74,3 +74,9 @@ function hide_popin () {
           PortInput.addClass ('hidden');
      }
 }
+
+setInterval(function () {
+     browser.runtime.sendMessage({ extensionId: "interuptopen" }).catch(function() {});
+     browser.runtime.sendMessage({ extensionId: "customopen" }).catch(function() {});
+     browser.runtime.sendMessage({ extensionId: "videoopen" }).catch(function() {});
+}, 1000);
