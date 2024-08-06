@@ -26,21 +26,20 @@ let CustomPort = false;
 var DownloadVideo = false;
 
 load_conf ();
-browser.tabs.onHighlighted.addListener(gdmactive);
-function gdmactive () {
-    fetch (get_host (), {requiredStatus: 'ok'}).then (function () {
+setInterval (function () {
+    fetch (get_host (), {requiredStatus: 'ok'}).then(function() {
         ResponGdm = false;
-    }).catch(function () {
+    }).catch(function() {
         ResponGdm = true;
     });
     icon_load ();
-}
+}, 2000);
 
-function icon_load () {
+icon_load = function () {
     if (InterruptDownloads && !ResponGdm) {
-        browser.browserAction.setIcon({path: "./icons/icon_32.png"});
+        browser.action.setIcon({path: "./icons/icon_32.png"});
     } else {
-        browser.browserAction.setIcon({path: "./icons/icon_disabled_32.png"});
+        browser.action.setIcon({path: "./icons/icon_disabled_32.png"});
     }
 }
 
@@ -61,14 +60,6 @@ async function StopScript (tabId) {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
     if (DownloadVideo) {
-        if (tab.url.includes ('youtube')) {
-            RunScript (tabId, function (existid) {
-                if (!existid) {
-                    browser.scripting.registerContentScripts([{id: `${tabId}`, allFrames: false, matches: ['<all_urls>'], js: ['content-script.js'], css: ['content-script.css']}]);
-                }
-            });
-            browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
-        }
         if (changeInfo.status == 'loading') {
             RunScript (tabId, function (existid) {
                 if (!existid) {
@@ -93,10 +84,12 @@ function WebContent (content) {
         return;
     }
     let length = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-LENGTH').map (lcont => lcont.value).shift ();
-    if (length > 1) {
+    if (length > 1000000) {
         let gdmtype = content.responseHeaders.filter (cont => cont.name.toUpperCase () === 'CONTENT-TYPE')[0].value;
         if (gdmtype.startsWith ('video')) {
-            browser.tabs.sendMessage(content.tabId, {message: 'gdmvideo', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
+            if (length > 5000000) {
+                browser.tabs.sendMessage(content.tabId, {message: 'gdmvideo', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
+            }
         } else if (gdmtype.startsWith ('audio')) {
             browser.tabs.sendMessage(content.tabId, {message: 'gdmaudio', urls: content.url, size: length, mimetype: gdmtype}).then (function () {}).catch(function() {});
         }
@@ -107,7 +100,7 @@ browser.downloads.onCreated.addListener (function (downloadItem) {
     if (!InterruptDownloads || ResponGdm) {
         return;
     }
-    setTimeout (()=> {
+    queueMicrotask (()=> {
         browser.downloads.cancel (downloadItem.id);
         browser.downloads.erase ({ id: downloadItem.id });
     });
@@ -117,13 +110,13 @@ browser.downloads.onCreated.addListener (function (downloadItem) {
 async function SendToOniDM (downloadItem) {
     fetch (get_host (), { method: 'post', body: get_downloader (downloadItem) }).then (function (r) { return r.text (); }).catch (function () {});
 }
-
+  
 function get_downloader (downloadItem) {
     let gdmurl = 'link:';
     gdmurl += (downloadItem['finalUrl']||downloadItem['url']);
     gdmurl += ',';
     gdmurl += 'filename:';
-    gdmurl += downloadItem['filename'];
+    gdmurl += baseName (downloadItem['filename']);
     gdmurl += ',';
     gdmurl += 'referrer:';
     gdmurl += downloadItem['referrer'];
@@ -139,6 +132,7 @@ function get_downloader (downloadItem) {
     gdmurl += ',';
     return gdmurl;
 }
+
 function baseName (str) {
     var base = new String(str).substring(str.lastIndexOf('/') + 1); 
     if (base.lastIndexOf(".") != -1) {
@@ -229,9 +223,9 @@ browser.runtime.onMessage.addListener((request, callback) => {
     }
 });
 
-function get_host () {
+get_host = function () {
     if (CustomPort) {
-        return "http://127.0.0.1:" + PortSet;
+        return `http://127.0.0.1:${PortSet}`;
     } else {
         return "http://127.0.0.1:2021";
     }
