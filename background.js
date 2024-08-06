@@ -47,7 +47,7 @@ async function RunScript (tabId, callback) {
     let existid = false;
     let scripts = await browser.scripting.getRegisteredContentScripts();
     for (let scrid of scripts.map((script) => script.id)) {
-        if (`${tabId}` === scrid) {
+        if (`${tabId}` == scrid) {
             existid = true;
         }
     }
@@ -61,6 +61,7 @@ async function StopScript (tabId) {
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
     if (DownloadVideo) {
         if (changeInfo.status == 'loading') {
+            browser.webRequest.onResponseStarted.addListener (WebContent, {urls: ['<all_urls>']}, ['responseHeaders']);
             RunScript (tabId, function (existid) {
                 if (!existid) {
                     browser.scripting.registerContentScripts([{id: `${tabId}`, allFrames: false, matches: ['<all_urls>'], js: ['content-script.js'], css: ['content-script.css']}]);
@@ -68,14 +69,10 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab)=> {
             });
             browser.webRequest.onResponseStarted.removeListener (WebContent);
             browser.tabs.sendMessage(tabId, {message: 'gdmclean'}).then (function () {}).catch(function() {});
+            browser.webRequest.onResponseStarted.addListener (WebContent, {urls: ['<all_urls>']}, ['responseHeaders']);
         }
-        browser.webRequest.onResponseStarted.addListener (WebContent, {urls: ['<all_urls>']}, ['responseHeaders']);
     } else {
-        RunScript (tabId, function (existid) {
-            if (existid) {
-                StopScript (tabId);
-            }
-        });
+        StopScript (tabId);
     }
 });
 
