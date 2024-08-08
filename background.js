@@ -216,11 +216,17 @@ browser.runtime.onMessage.addListener((request, sender, callback) => {
         load_conf ();
     } else if (request.extensionId == "gdmurl") {
         if (!InterruptDownloads || ResponGdm) {
+            downloadfirefox (request.message);
             return;
         }
         fetch (get_host (), { method: 'post', body: request.message }).then (function (r) { return r.text (); }).catch (function () {});
     }
 });
+
+async function downloadfirefox (urls) {
+    let url = urls.substring (5, urls.lastIndexOf(",filename:"));
+    await browser.downloads.download({url: url});
+}
 
 get_host = function () {
     if (CustomPort) {
