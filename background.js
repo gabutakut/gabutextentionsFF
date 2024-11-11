@@ -189,8 +189,12 @@ browser.commands.onCommand.addListener(function (command) {
         browser.runtime.sendMessage({ extensionId: command, message: !InterruptDownloads}).catch(function() {});
         load_conf ();
     } else if (command == "avideo-toggle") {
-        setVideoMenu (!DownloadVideo);
-        browser.runtime.sendMessage({ extensionId: command, message:  !DownloadVideo}).catch(function() {});
+        DownloadVideo = !DownloadVideo;
+        browser.tabs.query ({}, function(tab){
+            browser.tabs.reload (tab.Id, null, function () {});
+        });
+        setVideoMenu (DownloadVideo);
+        browser.runtime.sendMessage({ extensionId: command, message: DownloadVideo}).catch(function() {});
         load_conf ();
     }
 });
@@ -205,6 +209,12 @@ browser.runtime.onMessage.addListener((request, sender, callback) => {
     } else if (request.extensionId == "videoopen") {
         browser.runtime.sendMessage({ message: DownloadVideo, extensionId: "popvideo" }).catch(function() {});
     } else if (request.extensionId == "videochecked") {
+        if (DownloadVideo != request.message) {
+            DownloadVideo = request.message;
+            browser.tabs.query ({}, function(tab){
+                browser.tabs.reload (tab.Id, null, function () {});
+            });
+        }
         setVideoMenu (request.message);
         load_conf ();
     } else if (request.extensionId == "interuptchecked") {
